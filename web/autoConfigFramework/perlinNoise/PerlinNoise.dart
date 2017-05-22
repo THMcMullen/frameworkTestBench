@@ -13,131 +13,232 @@ class perlinNoise{
   Program shader;
   RenderingContext gl;
 
-  Map<String, int> attributes;
-  Map<String, int> uniforms;
+  int tileResolution;
 
-  Buffer indices;
-  Buffer vertices;
+
+  var modelView;
+  var projectionMat;
+
+  Buffer positions;
+  Buffer elements;
   Buffer normals;
 
-  int tileRes;
-  int indicesLength;
+  var vertPosition;
+  var vertNormal;
+  var cameraLoc;
 
-  perlinNoise(RenderingContext gl, int tileRes){
+  int numberOfElements = 0;
+
+  var change  = 0.001;
+
+  perlinNoise(int tileRes, RenderingContext gl){
 
     this.gl = gl;
-    this.tileRes = tileRes;
+    this.tileResolution = 50;
+
+    positions = this.gl.createBuffer();
+    elements = this.gl.createBuffer();
+    normals = this.gl.createBuffer();
+
     this.shader = createShader();
 
+    setupProgram();
     setupPerlinData();
+
 
   }
   //wait till x, y, z is fixed
   void update(){
 
+    List _positions = new List();
+    List _elements = new List();
+    List _normals = new List();
+
+    int pos = 0;
+
+    if(change >= 256.0){
+      change -= 256.0;
+    }
+    change += 0.001;
+
+    for(double i = 0.0; i < this.tileResolution; i++){
+      for(double j = 0.0; j < this.tileResolution; j++){
+
+        _positions.add(i);
+        var y = 5.0 * perlinCalc.perlinOctaveNoise(i/this.tileResolution, j/this.tileResolution, change, 1.0, 4, 0.707);
+        _positions.add(y);
+        _positions.add(j);
+
+      }
+    }
+
+    for (int i = 0; i < this.tileResolution - 1; i++) {
+      for (int j = 0; j < this.tileResolution - 1; j++) {
+
+        pos = i * this.tileResolution + j;
+
+        _elements.add(pos);
+        _elements.add(pos + 1);
+        _elements.add(pos + this.tileResolution);
+
+        _elements.add(pos + this.tileResolution);
+        _elements.add(pos + this.tileResolution + 1);
+        _elements.add(pos + 1);
+
+      }
+    }
+
+    numberOfElements = _elements.length;
+    _normals = createNormals(_elements, _positions);
+
+    gl.bindBuffer(RenderingContext.ARRAY_BUFFER, this.positions);
+    gl.bufferData(RenderingContext.ARRAY_BUFFER, new Float32List.fromList(_positions), RenderingContext.DYNAMIC_DRAW);
+
+    gl.bindBuffer(RenderingContext.ARRAY_BUFFER, this.normals);
+    gl.bufferData(RenderingContext.ARRAY_BUFFER, new Float32List.fromList(_normals), RenderingContext.DYNAMIC_DRAW);
+
   }
 
-  void render(Matrix4 viewMat, Matrix4 projectMat){
+  void render(Float32List modelMX, Float32List projectionMX, Float32List viewMX, Vector3 cameraLoc){
+
     gl.useProgram(this.shader);
 
-    utils.setMatrixUniforms(gl, viewMat, projectMat, uniforms['uPMatrix'], uniforms['uMVMatrix'], uniforms['uNormalMatrix']);
+    gl.uniformMatrix4fv(projectionMat, false, projectionMX);
 
-    gl.enableVertexAttribArray(attributes['aVertexPosition']);
-    gl.bindBuffer(ARRAY_BUFFER, vertices);
-    gl.vertexAttribPointer(attributes['aVertexPosition'], 3, FLOAT, false, 0, 0);
+    Matrix4 modelViewMatrix = (new Matrix4.fromList(viewMX));
+    modelViewMatrix.multiply(new Matrix4.fromList(modelMX));
+    gl.uniformMatrix4fv(modelView, false, modelViewMatrix.storage);
 
-    gl.enableVertexAttribArray(attributes['aVertexNormal']);
-    gl.bindBuffer(ARRAY_BUFFER, normals);
-    gl.vertexAttribPointer(attributes['aVertexNormal'], 3, FLOAT, false, 0, 0);
+    gl.uniform3fv(this.cameraLoc, cameraLoc.storage);
 
+    gl.enableVertexAttribArray(vertPosition);
+    gl.bindBuffer(RenderingContext.ARRAY_BUFFER, this.positions);
+    gl.vertexAttribPointer(vertPosition, 3, FLOAT, false, 0, 0);
 
-    gl.bindBuffer(ELEMENT_ARRAY_BUFFER, indices);
-    gl.drawElements(TRIANGLES, indicesLength, UNSIGNED_SHORT, 0);
+    gl.enableVertexAttribArray(vertNormal);
+    gl.bindBuffer(RenderingContext.ARRAY_BUFFER, this.normals);
+    gl.vertexAttribPointer(vertNormal, 3, FLOAT, false, 0, 0);
+
+    gl.bindBuffer(RenderingContext.ELEMENT_ARRAY_BUFFER, this.elements);
+    gl.drawElements(RenderingContext.TRIANGLES, this.numberOfElements, RenderingContext.UNSIGNED_SHORT, 0);
+
 
   }
 
   //need to fix the x, y, z
   void setupPerlinData(){
-    var attrib = ['aVertexPosition', 'aVertexNormal'];
-    var unif = ['uMVMatrix', 'uPMatrix', 'uNormalMatrix'];
 
-    attributes = utils.linkAttributes(gl, shader, attrib);
-    uniforms = utils.linkUniforms(gl, shader, unif);
-
-    indices = gl.createBuffer();
-    vertices = gl.createBuffer();
-    normals = gl.createBuffer();
+    List _positions = new List();
+    List _elements = new List();
+    List _normals = new List();
 
     int pos = 0;
 
-    List indicesList = new List();
-    List vertcesList = new List();
-    List normalList = new List();
+    Random rng = new Random();
 
-    //Generate a basic lattice
+    for(double i = 0.0; i < this.tileResolution; i++){
+      for(double j = 0.0; j < this.tileResolution; j++){
 
-    for(int i = 0; i < tileRes-1; i++){
-      for(int j = 0; j < tileRes-1; j++){
-
-        //the position of the vertices in the indices array we want to draw.
-        pos = (i*tileRes+j);
-
-        //top half of square
-        indicesList.add(pos);
-        indicesList.add(pos+1);
-        indicesList.add(pos+tileRes);
-
-        //bottom half of square
-        indicesList.add(pos+tileRes);
-        indicesList.add(pos+tileRes+1);
-        indicesList.add(pos+1);
+        _positions.add(i);
+        _positions.add(0.0);
+        _positions.add(j);
 
       }
     }
 
-    indicesLength = indicesList.length;
+    for (int i = 0; i < this.tileResolution - 1; i++) {
+      for (int j = 0; j < this.tileResolution - 1; j++) {
 
-    for(double i = 0.0; i < tileRes; i++){
-      for(double j = 0.0; j < tileRes; j++){
+        pos = i * this.tileResolution + j;
 
-        vertcesList.add(j);
-        vertcesList.add(0.0);
-        vertcesList.add(i);
+        _elements.add(pos);
+        _elements.add(pos + 1);
+        _elements.add(pos + this.tileResolution);
+
+        _elements.add(pos + this.tileResolution);
+        _elements.add(pos + this.tileResolution + 1);
+        _elements.add(pos + 1);
 
       }
     }
 
-    gl.bindBuffer(RenderingContext.ELEMENT_ARRAY_BUFFER, indices);
-    gl.bufferData(RenderingContext.ELEMENT_ARRAY_BUFFER, new Uint16List.fromList(indicesList), STATIC_DRAW);
+    numberOfElements = _elements.length;
 
-    gl.bindBuffer(RenderingContext.ARRAY_BUFFER, vertices);
-    gl.bufferData(RenderingContext.ARRAY_BUFFER, new Float32List.fromList(vertcesList), DYNAMIC_DRAW);
+    _normals = createNormals(_elements, _positions);
+    print(_normals.length);
+/*
+    _normals = new List();
 
-    //needs to be completed after the vertices are bound, as the "createNormals" function changes the vertices
-    normalList = createNormals(indicesList, vertcesList);
+    for (int i = 0; i < this.tileResolution; i++) {
+      for (int j = 0; j < this.tileResolution; j++) {
 
-    gl.bindBuffer(RenderingContext.ARRAY_BUFFER, normals);
-    gl.bufferData(ARRAY_BUFFER, new Float32List.fromList(normalList), DYNAMIC_DRAW);
+        var r = new Vector3.zero();
+
+        r.normalize();
+
+        _normals.add(r.x);
+        _normals.add(r.y);
+        _normals.add(r.z);
+
+      }
+    }
+*/
+    print(_normals.length);
+
+    gl.bindBuffer(RenderingContext.ARRAY_BUFFER, this.positions);
+    gl.bufferData(RenderingContext.ARRAY_BUFFER, new Float32List.fromList(_positions), RenderingContext.DYNAMIC_DRAW);
+
+    gl.bindBuffer(RenderingContext.ARRAY_BUFFER, this.normals);
+    gl.bufferData(RenderingContext.ARRAY_BUFFER, new Float32List.fromList(_normals), RenderingContext.DYNAMIC_DRAW);
+
+    gl.bindBuffer(RenderingContext.ELEMENT_ARRAY_BUFFER, this.elements);
+    gl.bufferData(RenderingContext.ELEMENT_ARRAY_BUFFER, new Uint16List.fromList(_elements), RenderingContext.STATIC_DRAW);
+
+
+
+  }
+
+  setupProgram(){
+
+    modelView = gl.getUniformLocation(shader, "modelView");
+    projectionMat = gl.getUniformLocation(shader, "projection");
+
+    cameraLoc = gl.getUniformLocation(shader, "cameraLoc");
+
+    vertPosition = gl.getAttribLocation(shader, "position");
+    vertNormal = gl.getAttribLocation(shader, "normal");
+
+
 
   }
 
   Program createShader(){
 
     String vertex = """
-        attribute vec3 aVertexPosition;
-        attribute vec3 aVertexNormal;
+        attribute vec3 position;
+        attribute vec3 normal;
 
-        uniform mat4 uMVMatrix;
-        uniform mat4 uPMatrix;
+
+        uniform mat4 modelView;
+        uniform mat4 projection;
+        uniform vec3 cameraLoc;
 
         varying vec3 pos;
         varying vec3 norm;
+        varying vec3 cameraPos;
 
         void main(void) {
-            gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+            gl_Position = projection * modelView * vec4(position, 1.0);
 
-            pos = vec3(uMVMatrix * vec4(aVertexPosition, 1.0));
-            norm = aVertexNormal;
+//            pos = vec3(modelView * vec4(position, 1.0));
+//            norm = vec3(modelView * vec4(normal, 0.0));
+//
+//            cameraPos = vec3(modelView * vec4(cameraLoc, 1.0));
+            //norm = normal;
+
+            pos = position;
+            norm = normal;
+            cameraPos = cameraLoc;
 
 
       }""";
@@ -147,14 +248,16 @@ class perlinNoise{
 
           varying vec3 pos;
           varying vec3 norm;
+          varying vec3 cameraPos;
 
           uniform samplerCube skyMap;
 
           void main(void) {
 
-              vec3 cameraPos = vec3(0.0,10.0,0.0);
+              vec3 _cameraPos = vec3(0.0,0.0,0.0);
 
-              vec3 I = normalize(cameraPos - pos);
+              //vec3 I = normalize(cameraPos - pos);
+              vec3 I = normalize(pos - cameraPos);
               vec3 R = reflect(I, normalize(norm));
               gl_FragColor = textureCube(skyMap, R);
               //gl_FragColor = vec4(1.0,0.0,0.0,1.0);
@@ -167,12 +270,12 @@ class perlinNoise{
 
   List createNormals(List indices, List vertices){
 
-    List normals = new List();
+    List _normals = new List();
 
     for(int i = 0; i < vertices.length; i++) {
-      normals.add(0.0);
-      normals.add(0.0);
-      normals.add(0.0);
+      _normals.add(0.0);
+      _normals.add(0.0);
+      _normals.add(0.0);
     }
 
     Vector3 pointOne = new Vector3.zero();
@@ -212,20 +315,35 @@ class perlinNoise{
 
       double l = sqrt(N.x*N.x + N.y*N.y + N.z*N.z);
 
-      normals[(indices[i-2])*3 + 0] += N.x / l;
-      normals[(indices[i-2])*3 + 1] += N.y / l;
-      normals[(indices[i-2])*3 + 2] += N.z / l;
+      _normals[(indices[i-2])*3 + 0] += N.x / l;
+      _normals[(indices[i-2])*3 + 1] += N.y / l;
+      _normals[(indices[i-2])*3 + 2] += N.z / l;
 
-      normals[(indices[i-1])*3 + 0] += N.x / l;
-      normals[(indices[i-1])*3 + 1] += N.y / l;
-      normals[(indices[i-1])*3 + 2] += N.z / l;
+      _normals[(indices[i-1])*3 + 0] += N.x / l;
+      _normals[(indices[i-1])*3 + 1] += N.y / l;
+      _normals[(indices[i-1])*3 + 2] += N.z / l;
 
-      normals[(indices[i])*3 + 0] += N.x / l;
-      normals[(indices[i])*3 + 1] += N.y / l;
-      normals[(indices[i])*3 + 2] += N.z / l;
+      _normals[(indices[i])*3 + 0] += N.x / l;
+      _normals[(indices[i])*3 + 1] += N.y / l;
+      _normals[(indices[i])*3 + 2] += N.z / l;
 
+//      normals.add(N.x); normals.add(N.y); normals.add(N.z);
+//      normals.add(N.x); normals.add(N.y); normals.add(N.z);
+//      normals.add(N.x); normals.add(N.y); normals.add(N.z);
+
+//      normals.add(((U.y * V.z) - (U.z * V.y))); // * -1.0);
+//      normals.add(((U.z * V.x) - (U.x * V.z))); // * -1.0);
+//      normals.add(((U.x * V.y) - (U.y * V.x))); // * -1.0);
+//
+//      normals.add(((U.y * V.z) - (U.z * V.y))); // * -1.0);
+//      normals.add(((U.z * V.x) - (U.x * V.z))); // * -1.0);
+//      normals.add(((U.x * V.y) - (U.y * V.x))); // * -1.0);
+//
+//      normals.add(((U.y * V.z) - (U.z * V.y))); // * -1.0);
+//      normals.add(((U.z * V.x) - (U.x * V.z))); // * -1.0);
+//      normals.add(((U.x * V.y) - (U.y * V.x))); // * -1.0);
     }
-
+/*
     for(int i = 0; i < vertices.length; i += 3) {
       Vector3 N = new Vector3.zero();
 
@@ -239,9 +357,8 @@ class perlinNoise{
       vertices[i+1] = N.y / l;
       vertices[i+2] = N.z / l;
     }
-
-    return normals;
+*/
+    return _normals;
   }
-
 
 }

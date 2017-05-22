@@ -160,6 +160,7 @@ class testCube{
 
     // Pass the color attribute down to the fragment shader
     varying vec4 vColor;
+    varying vec3 pos;
 
     void main() {
 
@@ -171,6 +172,7 @@ class testCube{
       // projected into clip space as a homogeneous point. Generally the
       // W value will be something other than 1 at the end of it.
       gl_Position = projection * view * model * vec4( position, 1.0 );
+      pos = vec3(view * model * vec4(position, 1.0));
     }
 
     """;
@@ -178,8 +180,18 @@ class testCube{
     String fragment = """
       precision mediump float;
       varying vec4 vColor;
+      varying vec3 pos;
+
+      uniform samplerCube skyMap;
 
       void main() {
+        vec3 cameraPos = vec3(0.0,0.0,0.0);
+
+        vec3 norm = vec3(0.0,1.0,0.0);
+
+        vec3 I = normalize(cameraPos - pos);
+        vec3 R = reflect(I, normalize(norm));
+        //gl_FragColor = textureCube(skyMap, R);
         gl_FragColor = vColor;
       //  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
       }

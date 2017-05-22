@@ -37,10 +37,10 @@ List createHeightMap(int tileResolution, [List _above, List _below, List _left, 
   double height = 1.0;
 
 
-  for (int sideLength = tileResolution - 1; sideLength >= tileResolution-2/*2*/; sideLength = sideLength ~/ 2, height /= 2) {
+  for (int sideLength = tileResolution - 1; sideLength >= 2; sideLength = sideLength ~/ 2, height /= 2) {
 
     int halfSide = sideLength ~/ 2;
-
+print("Diamond Step ${sideLength}");
     for (int x = 0; x < tileResolution - 1; x += sideLength) {
       for (int y = 0; y < tileResolution - 1; y += sideLength) {
 
@@ -51,12 +51,12 @@ List createHeightMap(int tileResolution, [List _above, List _below, List _left, 
 
         avg /= 4.0;
 
-        double offset = (-height) + /*rng.nextDouble()*/ 1 * (height - (-height));
+        double offset = (-height) + rng.nextDouble() * (height - (-height));
         heightMap[x + halfSide][y + halfSide] = avg + offset;
 
       }
     }
-
+print("Square Step ${sideLength}");
     for (int x = 0; x < tileResolution; x += halfSide) {
       for (int y = (x + halfSide) % sideLength; y < tileResolution; y += sideLength) {
 
@@ -67,7 +67,7 @@ List createHeightMap(int tileResolution, [List _above, List _below, List _left, 
 
         avg /= 4.0;
 
-        double offset = (-height) + /*rng.nextDouble()*/ 1 * (height - (-height));
+        double offset = (-height) + rng.nextDouble() * (height - (-height));
         heightMap[x][y] = avg + offset;
 
         if (above != null && x == tileResolution - 1) {

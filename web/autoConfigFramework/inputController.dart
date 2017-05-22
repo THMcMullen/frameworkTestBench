@@ -207,7 +207,6 @@ class inputController{
   }
 
   mouseDown(MouseEvent e){
-    print(e.button);
     if(e.button == 0){
       mousePressed = true;
     }

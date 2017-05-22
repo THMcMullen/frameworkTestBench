@@ -30,6 +30,9 @@ class core {
   //DiamondSqure;
   diamondSqure ds;
 
+  //Perlin Noise
+  perlinNoise pn;
+
   //Camera, input handler
   inputController ic;
 
@@ -43,9 +46,12 @@ class core {
     ic = new inputController(this.canvas);
 
     cube = new testCube(this.gl);
-    ds = new diamondSqure(0, 0, tileRes, this.gl);
+    //ds = new diamondSqure(0, 0, tileRes, this.gl);
 
-    gl.clearColor(0.66, 0.66, 0.66, 1.0);
+    pn = new perlinNoise(tileRes, gl);
+
+
+    gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.clearDepth(1.0);
     gl.enable(RenderingContext.DEPTH_TEST);
 
@@ -61,14 +67,16 @@ class core {
       gl.bindTexture(TEXTURE_CUBE_MAP, skyBox);
 
       cube.render(ic.model, ic.projection, ic.view);
-      ds.render(ic.model, ic.projection, ic.view, ic.normal);
+      //ds.render(ic.model, ic.projection, ic.view, ic.normal);
+      pn.render(ic.model, ic.projection, ic.view, ic.cameraPosition);
     }
 
   }
 
   update(){
     if(ready) {
-
+      //ds.update();
+      pn.update();
     }
 
   }
