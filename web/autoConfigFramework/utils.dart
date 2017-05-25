@@ -1,5 +1,6 @@
 library utils;
 
+import 'dart:math';
 import 'dart:web_gl' as webgl;
 
 import 'package:vector_math/vector_math.dart';
@@ -117,6 +118,71 @@ void setMatrixUniforms(webgl.RenderingContext gl, Matrix4 mvMatrix, Matrix4 pMat
   gl.uniformMatrix4fv(mvMatrixUniform, false, tempMV);
   gl.uniformMatrix3fv(nMatrixUniform, false, tempN);
 
+}
+
+List createNormals(List indices, List vertices){
+
+  List _normals = new List();
+
+  for(int i = 0; i < vertices.length; i++) {
+    _normals.add(0.0);
+    _normals.add(0.0);
+    _normals.add(0.0);
+  }
+
+  Vector3 pointOne = new Vector3.zero();
+  Vector3 pointTwo = new Vector3.zero();
+  Vector3 pointThree = new Vector3.zero();
+
+  Vector3 U = new Vector3.zero();
+  Vector3 V = new Vector3.zero();
+
+  for(int i = 0; i < indices.length; i++) {
+    //every 3 indices equals one triangle
+    //work out the vector that makes up the first point of the triangle
+    pointOne.x = vertices[(indices[i]) * 3];
+    pointOne.y = vertices[(indices[i]) * 3 + 1];
+    pointOne.z = vertices[(indices[i]) * 3 + 2];
+    i++;
+    pointTwo.x = vertices[(indices[i]) * 3];
+    pointTwo.y = vertices[(indices[i]) * 3 + 1];
+    pointTwo.z = vertices[(indices[i]) * 3 + 2];
+    i++;
+    pointThree.x = vertices[(indices[i]) * 3];
+    pointThree.y = vertices[(indices[i]) * 3 + 1];
+    pointThree.z = vertices[(indices[i]) * 3 + 2];
+
+    U = pointTwo - pointOne;
+    V = pointThree - pointOne;
+
+    Vector3 N = new Vector3.zero();
+
+    N.x = ((U.y * V.z) - (U.z * V.y)); // * -1.0);
+    N.y = ((U.z * V.x) - (U.x * V.z)); // * -1.0);
+    N.z = ((U.x * V.y) - (U.y * V.x)); // * -1.0);
+
+    if(N.y < 0.0) {
+      N = -N;
+    }
+
+    double l = sqrt(N.x*N.x + N.y*N.y + N.z*N.z);
+
+    _normals[(indices[i-2])*3 + 0] += N.x / l;
+    _normals[(indices[i-2])*3 + 1] += N.y / l;
+    _normals[(indices[i-2])*3 + 2] += N.z / l;
+
+    _normals[(indices[i-1])*3 + 0] += N.x / l;
+    _normals[(indices[i-1])*3 + 1] += N.y / l;
+    _normals[(indices[i-1])*3 + 2] += N.z / l;
+
+    _normals[(indices[i])*3 + 0] += N.x / l;
+    _normals[(indices[i])*3 + 1] += N.y / l;
+    _normals[(indices[i])*3 + 2] += N.z / l;
+
+
+  }
+
+  return _normals;
 }
 
 

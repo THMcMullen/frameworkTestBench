@@ -9,6 +9,7 @@ import 'diamondSquare/diamondSqure.dart';
 import 'package:vector_math/vector_math.dart';
 
 import 'perlinNoise/PerlinNoise.dart';
+import 'shallowWater/shallowWater.dart';
 import 'testCube/testCube.dart';
 import 'inputController.dart';
 
@@ -33,6 +34,9 @@ class core {
   //Perlin Noise
   perlinNoise pn;
 
+  //Shallow water
+  shallowWater sw;
+
   //Camera, input handler
   inputController ic;
 
@@ -45,10 +49,10 @@ class core {
 
     ic = new inputController(this.canvas);
 
-    cube = new testCube(this.gl);
+    //cube = new testCube(this.gl);
     //ds = new diamondSqure(0, 0, tileRes, this.gl);
-
-    pn = new perlinNoise(tileRes, gl);
+    //pn = new perlinNoise(tileRes, gl);
+    sw = new shallowWater(tileRes, gl);
 
 
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
@@ -66,9 +70,10 @@ class core {
           .DEPTH_BUFFER_BIT);
       gl.bindTexture(TEXTURE_CUBE_MAP, skyBox);
 
-      cube.render(ic.model, ic.projection, ic.view);
+      //cube.render(ic.model, ic.projection, ic.view);
       //ds.render(ic.model, ic.projection, ic.view, ic.normal);
-      pn.render(ic.model, ic.projection, ic.view, ic.cameraPosition);
+      //pn.render(ic.model, ic.projection, ic.view, ic.cameraPosition);
+      sw.render(ic.model, ic.projection, ic.view, ic.cameraPosition);
     }
 
   }
@@ -76,7 +81,8 @@ class core {
   update(){
     if(ready) {
       //ds.update();
-      pn.update();
+      //pn.update();
+      sw.update();
     }
 
   }

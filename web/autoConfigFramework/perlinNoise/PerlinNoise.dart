@@ -1,5 +1,6 @@
 library perlinNoise;
 
+import '../utils.dart';
 import 'dart:typed_data';
 import 'dart:math';
 import 'dart:web_gl';
@@ -34,7 +35,7 @@ class perlinNoise{
   perlinNoise(int tileRes, RenderingContext gl){
 
     this.gl = gl;
-    this.tileResolution = 50;
+    this.tileResolution = tileRes;
 
     positions = this.gl.createBuffer();
     elements = this.gl.createBuffer();
@@ -47,7 +48,7 @@ class perlinNoise{
 
 
   }
-  //wait till x, y, z is fixed
+
   void update(){
 
     List _positions = new List();
@@ -122,7 +123,6 @@ class perlinNoise{
     gl.bindBuffer(RenderingContext.ELEMENT_ARRAY_BUFFER, this.elements);
     gl.drawElements(RenderingContext.TRIANGLES, this.numberOfElements, RenderingContext.UNSIGNED_SHORT, 0);
 
-
   }
 
   //need to fix the x, y, z
@@ -133,8 +133,6 @@ class perlinNoise{
     List _normals = new List();
 
     int pos = 0;
-
-    Random rng = new Random();
 
     for(double i = 0.0; i < this.tileResolution; i++){
       for(double j = 0.0; j < this.tileResolution; j++){
@@ -163,27 +161,7 @@ class perlinNoise{
     }
 
     numberOfElements = _elements.length;
-
     _normals = createNormals(_elements, _positions);
-    print(_normals.length);
-/*
-    _normals = new List();
-
-    for (int i = 0; i < this.tileResolution; i++) {
-      for (int j = 0; j < this.tileResolution; j++) {
-
-        var r = new Vector3.zero();
-
-        r.normalize();
-
-        _normals.add(r.x);
-        _normals.add(r.y);
-        _normals.add(r.z);
-
-      }
-    }
-*/
-    print(_normals.length);
 
     gl.bindBuffer(RenderingContext.ARRAY_BUFFER, this.positions);
     gl.bufferData(RenderingContext.ARRAY_BUFFER, new Float32List.fromList(_positions), RenderingContext.DYNAMIC_DRAW);
@@ -266,99 +244,6 @@ class perlinNoise{
 
     return utils.loadShaderSource(gl, vertex, fragment);
 
-  }
-
-  List createNormals(List indices, List vertices){
-
-    List _normals = new List();
-
-    for(int i = 0; i < vertices.length; i++) {
-      _normals.add(0.0);
-      _normals.add(0.0);
-      _normals.add(0.0);
-    }
-
-    Vector3 pointOne = new Vector3.zero();
-    Vector3 pointTwo = new Vector3.zero();
-    Vector3 pointThree = new Vector3.zero();
-
-    Vector3 U = new Vector3.zero();
-    Vector3 V = new Vector3.zero();
-
-    for(int i = 0; i < indices.length; i++) {
-      //every 3 indices equals one triangle
-      //work out the vector that makes up the first point of the triangle
-      pointOne.x = vertices[(indices[i]) * 3];
-      pointOne.y = vertices[(indices[i]) * 3 + 1];
-      pointOne.z = vertices[(indices[i]) * 3 + 2];
-      i++;
-      pointTwo.x = vertices[(indices[i]) * 3];
-      pointTwo.y = vertices[(indices[i]) * 3 + 1];
-      pointTwo.z = vertices[(indices[i]) * 3 + 2];
-      i++;
-      pointThree.x = vertices[(indices[i]) * 3];
-      pointThree.y = vertices[(indices[i]) * 3 + 1];
-      pointThree.z = vertices[(indices[i]) * 3 + 2];
-
-      U = pointTwo - pointOne;
-      V = pointThree - pointOne;
-
-      Vector3 N = new Vector3.zero();
-
-      N.x = ((U.y * V.z) - (U.z * V.y)); // * -1.0);
-      N.y = ((U.z * V.x) - (U.x * V.z)); // * -1.0);
-      N.z = ((U.x * V.y) - (U.y * V.x)); // * -1.0);
-
-      if(N.y < 0.0) {
-        N = -N;
-      }
-
-      double l = sqrt(N.x*N.x + N.y*N.y + N.z*N.z);
-
-      _normals[(indices[i-2])*3 + 0] += N.x / l;
-      _normals[(indices[i-2])*3 + 1] += N.y / l;
-      _normals[(indices[i-2])*3 + 2] += N.z / l;
-
-      _normals[(indices[i-1])*3 + 0] += N.x / l;
-      _normals[(indices[i-1])*3 + 1] += N.y / l;
-      _normals[(indices[i-1])*3 + 2] += N.z / l;
-
-      _normals[(indices[i])*3 + 0] += N.x / l;
-      _normals[(indices[i])*3 + 1] += N.y / l;
-      _normals[(indices[i])*3 + 2] += N.z / l;
-
-//      normals.add(N.x); normals.add(N.y); normals.add(N.z);
-//      normals.add(N.x); normals.add(N.y); normals.add(N.z);
-//      normals.add(N.x); normals.add(N.y); normals.add(N.z);
-
-//      normals.add(((U.y * V.z) - (U.z * V.y))); // * -1.0);
-//      normals.add(((U.z * V.x) - (U.x * V.z))); // * -1.0);
-//      normals.add(((U.x * V.y) - (U.y * V.x))); // * -1.0);
-//
-//      normals.add(((U.y * V.z) - (U.z * V.y))); // * -1.0);
-//      normals.add(((U.z * V.x) - (U.x * V.z))); // * -1.0);
-//      normals.add(((U.x * V.y) - (U.y * V.x))); // * -1.0);
-//
-//      normals.add(((U.y * V.z) - (U.z * V.y))); // * -1.0);
-//      normals.add(((U.z * V.x) - (U.x * V.z))); // * -1.0);
-//      normals.add(((U.x * V.y) - (U.y * V.x))); // * -1.0);
-    }
-/*
-    for(int i = 0; i < vertices.length; i += 3) {
-      Vector3 N = new Vector3.zero();
-
-      N.x = vertices[i];
-      N.y = vertices[i+1];
-      N.z = vertices[i+2];
-
-      double l = sqrt(N.x*N.x + N.y*N.y + N.z*N.z);
-
-      vertices[i]   = N.x / l;
-      vertices[i+1] = N.y / l;
-      vertices[i+2] = N.z / l;
-    }
-*/
-    return _normals;
   }
 
 }
