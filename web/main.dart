@@ -11,7 +11,7 @@ void main() {
   int testSize = 1;
 
   //the tiles resolution
-  int tileRes = 65;
+  int tileRes = 32;
   //the number of tiles to benchmark
   int tileCount = 1;
   //the quality of the generated tile

@@ -66,11 +66,14 @@ class shallowWater{
 
   }
 
+  double dt = 0.001;
+
   update(){
     List _elements = this.renderingData[3];
-    List _updatedRenderingData = updateWater(g, b, h, h1, u, u1, v, v1, this.tileResolution, _elements, this.baseLayout, this.gl);
+    List _updatedRenderingData = updateWater(g, b, h, h1, u, u1, v, v1, this.tileResolution, _elements, this.baseLayout, this.gl, dt);
     renderingData[0] = _updatedRenderingData[0];
     renderingData[1] = _updatedRenderingData[1];
+    dt += 0.001;
   }
 
 
@@ -150,7 +153,7 @@ class shallowWater{
               //vec3 I = normalize(cameraPos - pos);
               vec3 I = normalize(pos - cameraPos);
               vec3 R = reflect(I, normalize(norm));
-              gl_FragColor = textureCube(skyMap, R);
+              gl_FragColor = textureCube(skyMap, -R);
               //gl_FragColor = vec4(1.0,0.0,0.0,1.0);
 
       }""";

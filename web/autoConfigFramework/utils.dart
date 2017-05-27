@@ -38,7 +38,7 @@ webgl.Program loadShaderSource(webgl.RenderingContext gl, String vertShaderSourc
   return shaderProgram;
 
 }
-
+/*
 Map<String, int> linkAttributes(webgl.RenderingContext gl, webgl.Program shader, attr){
   Map<String, int> attrib = new Map.fromIterable(attr,
       key: (item) => item,
@@ -54,7 +54,7 @@ Map<String, int> linkUniforms(webgl.RenderingContext gl, webgl.Program shader, u
 
   return uniform;
 }
-
+*/
 
 
 
