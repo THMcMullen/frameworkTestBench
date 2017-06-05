@@ -58,8 +58,8 @@ class diamondSqure{
     colors = this.gl.createBuffer();
 
     //For taking images
-    //heightMap = createHeightMap(this.tileResolution);
-
+    heightMap = createHeightMap(this.tileResolution);
+/*
     heightMap = new List(tileResolution);
     for(int i = 0; i < tileResolution; i++){
       heightMap[i] = new List(tileResolution);
@@ -68,7 +68,7 @@ class diamondSqure{
       }
     }
     //heightMap[0][0] = 10.0;
-
+*/
     heightMapChanges = new List(tileResolution);
     for(int i = 0; i < tileResolution; i++){
       heightMapChanges[i] = new List(tileResolution);
@@ -78,8 +78,8 @@ class diamondSqure{
     }
     heightMapChangesOld = heightMapChanges;
 
-    sideLength = tileResolution - 1;
-    height = 5.0;
+    sideLength = 1;//tileResolution - 1;
+    height = 10.0;
 
     convertHeightMap();
     createShaders();
@@ -185,7 +185,7 @@ class diamondSqure{
     for (double i = 0.0; i < this.tileResolution; i++) {
       for (double j = 0.0; j < this.tileResolution; j++) {
         _positions.add(i);// * (128 / (this.tileResolution - 1)) + (128 * this.x) - (5 * 128));// + (locX*res) - res);
-        _positions.add(heightMap[i.toInt()][j.toInt()]);
+        _positions.add(heightMap[i.toInt()][j.toInt()] + 1.0);
         _positions.add(j);// * (128 / (this.tileResolution - 1)) + (128 * this.y) - (5 * 128));// + (locY*res) - res);
 
         if(sideLength == 1){

@@ -1,5 +1,6 @@
 library core;
 
+import 'contourTracing/contourTracing.dart';
 import 'dart:html';
 import 'dart:typed_data';
 import 'dart:web_gl';
@@ -18,6 +19,8 @@ class core {
   //used for webgl
   RenderingContext gl;
   CanvasElement canvas;
+  int tileCount;
+  int tileRes;
 
   Matrix4 projectionMat;
 
@@ -30,12 +33,16 @@ class core {
 
   //DiamondSqure;
   diamondSqure ds;
+  List<diamondSqure> dsl;
 
   //Perlin Noise
   perlinNoise pn;
 
   //Shallow water
   shallowWater sw;
+
+  //Contour tracing
+  contourTracing ct;
 
   //Camera, input handler
   inputController ic;
@@ -46,20 +53,35 @@ class core {
 
     this.gl = gl;
     this.canvas = canvas;
+    this.tileCount = tileCount;
+    this.tileRes = tileRes;
 
     ic = new inputController(this.canvas);
 
     //cube = new testCube(this.gl);
     //ds = new diamondSqure(0, 0, tileRes, this.gl);
+    //ct = new contourTracing(ds.heightMap);
+    //print(ct.layout);
     //pn = new perlinNoise(tileRes, gl);
-    sw = new shallowWater(tileRes, gl);
-
+    //sw = new shallowWater(tileRes, gl, ct.layout);
 
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.clearDepth(1.0);
     gl.enable(RenderingContext.DEPTH_TEST);
 
     ready = true;
+
+  }
+
+  createDiamondSqureList(){
+
+    dsl = new List<diamondSqure>(this.tileCount);
+
+    for(int i = 0; i < this.tileCount; i++){
+
+    }
+
+
 
   }
 
@@ -73,7 +95,7 @@ class core {
       //cube.render(ic.model, ic.projection, ic.view);
       //ds.render(ic.model, ic.projection, ic.view, ic.normal);
       //pn.render(ic.model, ic.projection, ic.view, ic.cameraPosition);
-      sw.render(ic.model, ic.projection, ic.view, ic.cameraPosition);
+      //sw.render(ic.model, ic.projection, ic.view, ic.cameraPosition);
     }
 
   }
@@ -82,7 +104,7 @@ class core {
     if(ready) {
       //ds.update();
       //pn.update();
-      sw.update();
+      //sw.update();
     }
 
   }

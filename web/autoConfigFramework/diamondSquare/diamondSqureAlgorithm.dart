@@ -33,14 +33,14 @@ List createHeightMap(int tileResolution, [List _above, List _below, List _left, 
     }
   }
 
-  Random rng = new Random();
-  double height = 1.0;
+  Random rng = new Random(5);
+  double height = 5.0;
 
 
   for (int sideLength = tileResolution - 1; sideLength >= 2; sideLength = sideLength ~/ 2, height /= 2) {
 
     int halfSide = sideLength ~/ 2;
-print("Diamond Step ${sideLength}");
+//print("Diamond Step ${sideLength}");
     for (int x = 0; x < tileResolution - 1; x += sideLength) {
       for (int y = 0; y < tileResolution - 1; y += sideLength) {
 
@@ -56,7 +56,7 @@ print("Diamond Step ${sideLength}");
 
       }
     }
-print("Square Step ${sideLength}");
+//print("Square Step ${sideLength}");
     for (int x = 0; x < tileResolution; x += halfSide) {
       for (int y = (x + halfSide) % sideLength; y < tileResolution; y += sideLength) {
 

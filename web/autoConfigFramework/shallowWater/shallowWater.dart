@@ -32,6 +32,8 @@ class shallowWater{
     this.tileResolution = tileRes;
     this.baseLayout = baseLayout;
 
+    //print(baseLayout);
+
     initLists();
     shader = createShader();
     setupProgram();
@@ -153,7 +155,7 @@ class shallowWater{
               //vec3 I = normalize(cameraPos - pos);
               vec3 I = normalize(pos - cameraPos);
               vec3 R = reflect(I, normalize(norm));
-              gl_FragColor = textureCube(skyMap, -R);
+              gl_FragColor = textureCube(skyMap, R);
               //gl_FragColor = vec4(1.0,0.0,0.0,1.0);
 
       }""";

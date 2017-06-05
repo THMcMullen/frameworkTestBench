@@ -23,15 +23,15 @@ waterSetup(List g, List b, List h, List h1, List u, List u1, List v, List v1, in
     }
   }
   //Not needed for testing
-  /*
+
   for (int iy = 0; iy < tileRes; iy++) {
     for (int ix = 0; ix < tileRes; ix++) {
-      if (grid[iy][ix] == 0) {
-        b[iy * X + ix] = true;
+      if (baseLayout[iy][ix] == 0) {
+        b[ix * X + iy] = true;
       }
     }
   }
-  */
+
   // Ground
   for (int iy = 0; iy < Y; iy++) {
     for (int ix = 0; ix < X; ix++) {
