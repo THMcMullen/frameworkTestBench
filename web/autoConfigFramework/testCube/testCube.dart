@@ -192,8 +192,8 @@ class testCube{
         vec3 I = normalize(cameraPos - pos);
         vec3 R = reflect(I, normalize(norm));
         //gl_FragColor = textureCube(skyMap, R);
-        gl_FragColor = vColor;
-      //  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        //gl_FragColor = vColor;
+        gl_FragColor = vec4(0.6, 0.6, 0.6, 1.0);
       }
     """;
 

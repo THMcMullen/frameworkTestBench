@@ -3,7 +3,7 @@ library diamondSquareAlgorithm;
 import 'dart:math';
 
 //Takes a desired resolution, along with linking edges if they exist.
-List createHeightMap(int tileResolution, [List _above, List _below, List _left, List _right]){
+List createHeightMap(int tileResolution, List _above, List _below, List _left, List _right){
 
   List above;
   List below;
@@ -19,8 +19,8 @@ List createHeightMap(int tileResolution, [List _above, List _below, List _left, 
   if(_left != null){
     left = _left;
   }
-  if(_left != null){
-    left = _left;
+  if(_right != null){
+    right = _right;
   }
 
   //Create the heightmap to be of the desired size,
@@ -34,13 +34,13 @@ List createHeightMap(int tileResolution, [List _above, List _below, List _left, 
   }
 
   Random rng = new Random();
-  double height = 1.0;
+  double height = 5.0;
 
 
   for (int sideLength = tileResolution - 1; sideLength >= 2; sideLength = sideLength ~/ 2, height /= 2) {
 
     int halfSide = sideLength ~/ 2;
-print("Diamond Step ${sideLength}");
+//print("Diamond Step ${sideLength}");
     for (int x = 0; x < tileResolution - 1; x += sideLength) {
       for (int y = 0; y < tileResolution - 1; y += sideLength) {
 
@@ -56,7 +56,7 @@ print("Diamond Step ${sideLength}");
 
       }
     }
-print("Square Step ${sideLength}");
+//print("Square Step ${sideLength}");
     for (int x = 0; x < tileResolution; x += halfSide) {
       for (int y = (x + halfSide) % sideLength; y < tileResolution; y += sideLength) {
 
@@ -79,7 +79,7 @@ print("Square Step ${sideLength}");
         if (left != null && y == 0) {
           heightMap[x][0] = left[x];
         }
-        if (right != null && y == tileResolution - 1) {
+        if (right != null && y == tileResolution-1) {
           heightMap[x][tileResolution - 1] = right[x];
         }
 

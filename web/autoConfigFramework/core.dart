@@ -1,5 +1,6 @@
 library core;
 
+import 'contourTracing/contourTracing.dart';
 import 'dart:html';
 import 'dart:typed_data';
 import 'dart:web_gl';
@@ -18,6 +19,8 @@ class core {
   //used for webgl
   RenderingContext gl;
   CanvasElement canvas;
+  int tileCount;
+  int tileRes;
 
   Matrix4 projectionMat;
 
@@ -29,13 +32,19 @@ class core {
   testCube cube;
 
   //DiamondSqure;
-  diamondSqure ds;
+  //diamondSqure ds;
+  List<diamondSqure> dsl;
 
   //Perlin Noise
   perlinNoise pn;
 
   //Shallow water
-  shallowWater sw;
+  //shallowWater sw;
+  List<shallowWater> swl;
+
+  //Contour tracing
+  //contourTracing ct;
+  List<contourTracing> ctl;
 
   //Camera, input handler
   inputController ic;
@@ -46,14 +55,20 @@ class core {
 
     this.gl = gl;
     this.canvas = canvas;
+    this.tileCount = tileCount;
+    this.tileRes = tileRes;
 
     ic = new inputController(this.canvas);
 
     //cube = new testCube(this.gl);
-    //ds = new diamondSqure(0, 0, tileRes, this.gl);
+    createDiamondSquareList();
+    //ct = new contourTracing(ds.heightMap);
+    //ds.useCT(ct.layout);
+    //print(ct.layout);
+    createContourList();
     //pn = new perlinNoise(tileRes, gl);
-    sw = new shallowWater(tileRes, gl);
-
+    //sw = new shallowWater(tileRes, gl);//, ct.layout);
+    createShallowWaterList();
 
     gl.clearColor(1.0, 1.0, 1.0, 1.0);
     gl.clearDepth(1.0);
@@ -61,6 +76,51 @@ class core {
 
     ready = true;
 
+  }
+
+  createDiamondSquareList(){
+    dsl = new List<diamondSqure>(2);
+    dsl[0] = (new diamondSqure( 0,  0, this.tileRes, gl, dsl));
+    dsl[1] = (new diamondSqure( 0,  1, this.tileRes, gl, dsl));
+    /*dsl[2] = (new diamondSqure( 0, -1, this.tileRes, gl, dsl));
+    dsl[3] = (new diamondSqure( 1,  0, this.tileRes, gl, dsl));
+    dsl[4] = (new diamondSqure(-1,  0, this.tileRes, gl, dsl));
+    dsl[5] = (new diamondSqure(-1, -1, this.tileRes, gl, dsl));
+    dsl[6] = (new diamondSqure(-1,  1, this.tileRes, gl, dsl));
+    dsl[7] = (new diamondSqure( 1, -1, this.tileRes, gl, dsl));
+    dsl[8] = (new diamondSqure( 1,  1, this.tileRes, gl, dsl));*/
+  }
+
+  renderDiamondSquareList(){
+    for(int i = 0; i < dsl.length; i ++){
+      dsl[i].render(ic.model, ic.projection, ic.view, ic.normal);
+    }
+  }
+
+  createContourList(){
+    ctl = new List<contourTracing>(dsl.length);
+    for(int i = 0; i < ctl.length; i++){
+      ctl[i] = new contourTracing(dsl[i].heightMap);
+    }
+  }
+
+  createShallowWaterList(){
+    swl = new List<shallowWater>(dsl.length);
+    for(int i = 0; i < swl.length; i++) {
+      swl[i] = new shallowWater(tileRes, gl, dsl[i].x, dsl[i].y, ctl[i].layout);
+    }
+  }
+
+  updateShallowWaterList(){
+    for(int i = 0; i < swl.length; i++){
+      swl[i].update();
+    }
+  }
+
+  renderShallowWaterList(){
+    for(int i = 0; i < swl.length; i++){
+      swl[i].render(ic.model, ic.projection, ic.view, ic.cameraPosition);
+    }
   }
 
   draw(){
@@ -72,8 +132,10 @@ class core {
 
       //cube.render(ic.model, ic.projection, ic.view);
       //ds.render(ic.model, ic.projection, ic.view, ic.normal);
+      renderDiamondSquareList();
       //pn.render(ic.model, ic.projection, ic.view, ic.cameraPosition);
-      sw.render(ic.model, ic.projection, ic.view, ic.cameraPosition);
+      //sw.render(ic.model, ic.projection, ic.view, ic.cameraPosition);
+      renderShallowWaterList();
     }
 
   }
@@ -82,7 +144,8 @@ class core {
     if(ready) {
       //ds.update();
       //pn.update();
-      sw.update();
+      //sw.update();
+      updateShallowWaterList();
     }
 
   }

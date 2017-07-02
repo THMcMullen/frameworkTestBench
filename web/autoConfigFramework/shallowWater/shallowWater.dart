@@ -20,6 +20,8 @@ class shallowWater{
 
   Program shader;
 
+  shallowWaterUpdate swu;
+
   var modelView;
   var projectionMat;
   var cameraLoc;
@@ -27,17 +29,26 @@ class shallowWater{
   var vertPosition;
   var vertNormal;
 
-  shallowWater(int tileRes, RenderingContext gl, [List<List<int>> baseLayout]){
+  int x;
+  int y;
+
+  shallowWater(int tileRes, RenderingContext gl, int x, int y, [List<List<int>> baseLayout]){
     this.gl = gl;
     this.tileResolution = tileRes;
     this.baseLayout = baseLayout;
+    this.x = x;
+    this.y = y;
+
+    //print(baseLayout);
 
     initLists();
     shader = createShader();
     setupProgram();
 
-    waterSetup(g,b,h,h1,u,u1,v,v1, tileRes, this.baseLayout);
-    renderingData = waterCreateBuffers(this.baseLayout, gl);
+    swu = new shallowWaterUpdate(gl);
+
+    swu.waterSetup(g,b,h,h1,u,u1,v,v1, tileRes, this.baseLayout);
+    renderingData = swu.waterCreateBuffers(this.baseLayout, gl);
 
   }
 
@@ -70,7 +81,7 @@ class shallowWater{
 
   update(){
     List _elements = this.renderingData[3];
-    List _updatedRenderingData = updateWater(g, b, h, h1, u, u1, v, v1, this.tileResolution, _elements, this.baseLayout, this.gl, dt);
+    List _updatedRenderingData = swu.updateWater(g, b, h, h1, u, u1, v, v1, this.tileResolution, _elements, this.baseLayout, dt, x,y);
     renderingData[0] = _updatedRenderingData[0];
     renderingData[1] = _updatedRenderingData[1];
     dt += 0.001;
@@ -153,7 +164,7 @@ class shallowWater{
               //vec3 I = normalize(cameraPos - pos);
               vec3 I = normalize(pos - cameraPos);
               vec3 R = reflect(I, normalize(norm));
-              gl_FragColor = textureCube(skyMap, -R);
+              gl_FragColor = textureCube(skyMap, R);
               //gl_FragColor = vec4(1.0,0.0,0.0,1.0);
 
       }""";

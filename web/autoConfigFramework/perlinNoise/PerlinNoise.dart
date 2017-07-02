@@ -65,10 +65,10 @@ class perlinNoise{
     for(double i = 0.0; i < this.tileResolution; i++){
       for(double j = 0.0; j < this.tileResolution; j++){
 
-        _positions.add(i);
+        _positions.add(i /2);
         var y = 5.0 * perlinCalc.perlinOctaveNoise(i/this.tileResolution, j/this.tileResolution, change, 1.0, 4, 0.707);
         _positions.add(y);
-        _positions.add(j);
+        _positions.add(j /2);
 
       }
     }

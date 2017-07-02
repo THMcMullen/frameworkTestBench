@@ -10,7 +10,7 @@ import 'package:vector_math/vector_math.dart';
 
 class diamondSqure{
 
-  var heightMap;
+  List heightMap;
   double height;
 
   int x = 0;
@@ -45,12 +45,15 @@ class diamondSqure{
   var heightMapChanges;
   var heightMapChangesOld;
 
-  diamondSqure(int x, int y, int tileResolution, RenderingContext gl){
+  List<diamondSqure> dsl;
+
+  diamondSqure(int x, int y, int tileResolution, RenderingContext gl, List<diamondSqure> dsl){
 
     this.x = x;
     this.y = y;
     this.tileResolution = tileResolution;
     this.gl = gl;
+    this.dsl = dsl;
 
     positions = this.gl.createBuffer();
     elements = this.gl.createBuffer();
@@ -58,8 +61,40 @@ class diamondSqure{
     colors = this.gl.createBuffer();
 
     //For taking images
-    //heightMap = createHeightMap(this.tileResolution);
 
+    List _above = null;
+    List _below = null;
+    List _left = null;
+    List _right = null;
+
+    for(int i = 0; i < dsl.length; i++){
+      if(dsl[i] != null){
+        if(dsl[i].x == this.x + 1 && dsl[i].y == this.y){
+          _above = dsl[i].heightMap[0];
+        }
+        if(dsl[i].x == this.x - 1 && dsl[i].y == this.y){
+          _below = dsl[i].heightMap.last;
+        }
+        if(dsl[i].x == this.x && dsl[i].y == this.y - 1){
+          List tempLeft = new List();
+          for(int j = 0 ; j < dsl[i].heightMap.length; j++){
+            tempLeft.add(dsl[i].heightMap[j].last);
+          }
+          _left = tempLeft;
+        }
+        if(dsl[i].x == this.x && dsl[i].y == this.y + 1){
+          List tempRight = new List();
+          for(int j = 0 ; j < dsl[i].heightMap.length; j++){
+            tempRight.add(dsl[i].heightMap[j][0]);
+          }
+          _right = tempRight;
+        }
+      }
+    }
+
+    heightMap = createHeightMap(this.tileResolution, _above, _below, _left, _right);
+
+/*
     heightMap = new List(tileResolution);
     for(int i = 0; i < tileResolution; i++){
       heightMap[i] = new List(tileResolution);
@@ -68,7 +103,7 @@ class diamondSqure{
       }
     }
     //heightMap[0][0] = 10.0;
-
+*/
     heightMapChanges = new List(tileResolution);
     for(int i = 0; i < tileResolution; i++){
       heightMapChanges[i] = new List(tileResolution);
@@ -78,8 +113,8 @@ class diamondSqure{
     }
     heightMapChangesOld = heightMapChanges;
 
-    sideLength = tileResolution - 1;
-    height = 5.0;
+    sideLength = 1;//tileResolution - 1;
+    height = 10.0;
 
     convertHeightMap();
     createShaders();
@@ -168,7 +203,25 @@ class diamondSqure{
 
     gl.bindBuffer(RenderingContext.ELEMENT_ARRAY_BUFFER, this.elements);
 
-    gl.drawElements(RenderingContext.TRIANGLES, numberOfElements, RenderingContext.UNSIGNED_SHORT, 0);
+    gl.drawElements(RenderingContext.LINES, numberOfElements, RenderingContext.UNSIGNED_SHORT, 0);
+
+  }
+
+  useCT(List<List<int>> ct){
+
+    print(ct.length);
+    print(heightMapChanges.length);
+
+    for(int i = 1; i < ct.length-1; i++){
+      for(int j = 1; j < ct[i].length-1; j++){
+        if(ct[i][j] != 0){
+          heightMapChanges[j-1][i-1] = 3;
+        }
+      }
+    }
+
+    convertHeightMap();
+
 
   }
 
@@ -184,13 +237,19 @@ class diamondSqure{
 
     for (double i = 0.0; i < this.tileResolution; i++) {
       for (double j = 0.0; j < this.tileResolution; j++) {
-        _positions.add(i);// * (128 / (this.tileResolution - 1)) + (128 * this.x) - (5 * 128));// + (locX*res) - res);
-        _positions.add(heightMap[i.toInt()][j.toInt()]);
-        _positions.add(j);// * (128 / (this.tileResolution - 1)) + (128 * this.y) - (5 * 128));// + (locY*res) - res);
+        _positions.add(((i + (x * this.tileResolution))-x)/4);// * (128 / (this.tileResolution - 1)) + (128 * this.x) - (5 * 128));// + (locX*res) - res);
+        _positions.add(heightMap[i.toInt()][j.toInt()] + 1.0);
+        _positions.add(((j + (y * this.tileResolution))-y)/4);// * (128 / (this.tileResolution - 1)) + (128 * this.y) - (5 * 128));// + (locY*res) - res);
 
         if(sideLength == 1){
           double alpha = heightMap[i.toInt()][j.toInt()] / 5;
-          if(heightMap[i.toInt()][j.toInt()] < -0.5){
+          if (heightMapChanges[i.toInt()][j.toInt()] == 3) {
+            //make red
+            _colors.add(1.0);
+            _colors.add(1.0);
+            _colors.add(1.0);
+            _colors.add(1.0);
+          }else if(heightMap[i.toInt()][j.toInt()] < -0.5){
             _colors.add(0.0);
             _colors.add(0.0);
             _colors.add(1.0);
@@ -221,7 +280,7 @@ class diamondSqure{
             _colors.add(1.0);
             _colors.add(1.0);
           } else if (heightMapChanges[i.toInt()][j.toInt()] == 1) {
-            //make blue
+            //make green
             _colors.add(0.0);
             _colors.add(1.0);
             _colors.add(0.0);

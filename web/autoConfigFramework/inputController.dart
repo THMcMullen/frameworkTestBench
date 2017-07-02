@@ -34,6 +34,9 @@ class inputController{
   int accumDX = 0;
   int accumDY = 0;
 
+  var lastX = 0.0;
+  var lastY = 0.0;
+
   bool up = false;
   bool down = false;
   bool strafeLeft = false;
@@ -104,7 +107,7 @@ class inputController{
 
       */
     //Code to create and set the perspective Matrix
-    Matrix4 projectionMatrix = makePerspectiveMatrix(PI * 0.5, (canvas.width / canvas.height), 1.0, 500.0);
+    Matrix4 projectionMatrix = makePerspectiveMatrix(PI * 0.5, (canvas.width / canvas.height), 1.0, 1000.0);
     projection = projectionMatrix.storage;
 
     //View
@@ -149,6 +152,10 @@ class inputController{
     window.onMouseDown.listen(mouseDown);
     window.onMouseMove.listen(mouseMove);
     window.onMouseUp.listen(mouseUp);
+
+    window.onTouchStart.listen(touchDown);
+    window.onTouchMove.listen(touchMove);
+    window.onTouchEnd.listen(touchUp);
 
 
   }
@@ -225,6 +232,32 @@ class inputController{
     if(e.button == 0){
       mousePressed = false;
     }
+  }
+
+  touchMove(TouchEvent event){
+    if(mousePressed){
+
+      accumDX += event.touches[0].client.x - lastX;
+      accumDY += event.touches[0].client.y - lastY;
+
+      lastX = event.touches[0].client.x;
+      lastY = event.touches[0].client.y;
+
+    }
+  }
+
+  touchDown(TouchEvent event){
+    print("Touch");
+    if(event.touches.length == 1){
+      mousePressed = true;
+
+      lastX = event.touches[0].client.x;
+      lastY = event.touches[0].client.y;
+    }
+  }
+
+  touchUp(TouchEvent event){
+    mousePressed = false;
   }
 
   double degToRad(degrees) {
