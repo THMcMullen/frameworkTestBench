@@ -1,5 +1,8 @@
 library core;
 
+import 'dart:isolate';
+
+import 'IsolateController.dart';
 import 'contourTracing/contourTracing.dart';
 import 'dart:html';
 import 'dart:typed_data';
@@ -36,7 +39,8 @@ class core {
   List<diamondSqure> dsl;
 
   //Perlin Noise
-  perlinNoise pn;
+  //perlinNoise pn;
+  List<perlinNoise> pnl;
 
   //Shallow water
   //shallowWater sw;
@@ -67,6 +71,7 @@ class core {
     //print(ct.layout);
     createContourList();
     //pn = new perlinNoise(tileRes, gl);
+    createPerlinNoiseList();
     //sw = new shallowWater(tileRes, gl);//, ct.layout);
     createShallowWaterList();
 
@@ -80,15 +85,25 @@ class core {
 
   createDiamondSquareList(){
     dsl = new List<diamondSqure>(2);
-    dsl[0] = (new diamondSqure( 0,  0, this.tileRes, gl, dsl));
-    dsl[1] = (new diamondSqure( 0,  1, this.tileRes, gl, dsl));
-    /*dsl[2] = (new diamondSqure( 0, -1, this.tileRes, gl, dsl));
-    dsl[3] = (new diamondSqure( 1,  0, this.tileRes, gl, dsl));
-    dsl[4] = (new diamondSqure(-1,  0, this.tileRes, gl, dsl));
-    dsl[5] = (new diamondSqure(-1, -1, this.tileRes, gl, dsl));
-    dsl[6] = (new diamondSqure(-1,  1, this.tileRes, gl, dsl));
-    dsl[7] = (new diamondSqure( 1, -1, this.tileRes, gl, dsl));
-    dsl[8] = (new diamondSqure( 1,  1, this.tileRes, gl, dsl));*/
+    bool usingIsolates = false;
+
+    var t0 = window.performance.now();
+
+    dsl[0] = (new diamondSqure( 0,  0, this.tileRes, gl, dsl, usingIsolates));
+    dsl[1] = (new diamondSqure( 1,  0, this.tileRes, gl, dsl, usingIsolates));
+    //dsl[2] = (new diamondSqure( 1,  1, this.tileRes, gl, dsl, usingIsolates));
+    //dsl[3] = (new diamondSqure( 1,  0, this.tileRes, gl, dsl, usingIsolates));
+    /*dsl[4] = (new diamondSqure(-1,  0, this.tileRes, gl, dsl, usingIsolates));
+    dsl[5] = (new diamondSqure(-1, -1, this.tileRes, gl, dsl, usingIsolates));
+    dsl[6] = (new diamondSqure(-1,  1, this.tileRes, gl, dsl, usingIsolates));
+    dsl[7] = (new diamondSqure( 1, -1, this.tileRes, gl, dsl, usingIsolates));
+    dsl[8] = (new diamondSqure( 1,  1, this.tileRes, gl, dsl, usingIsolates));/ **/
+
+    var t1 = window.performance.now();
+    var time = t1 - t0;
+
+    print(time);
+
   }
 
   renderDiamondSquareList(){
@@ -104,10 +119,55 @@ class core {
     }
   }
 
+  //Perlin Noise
+  isolateController isoCon;
+
+  createPerlinNoiseList(){
+    pnl = new List<perlinNoise>(dsl.length);
+    bool usingIsolates = false;
+    for(int i = 0; i < pnl.length; i++) {
+      pnl[i] = new perlinNoise(dsl[i].x, dsl[i].y, tileRes, gl, usingIsolates, ctl[i].layout);
+    }
+    /*
+    pnl[0] = new perlinNoise(0, 0,tileRes, gl, usingIsolates);
+    pnl[1] = new perlinNoise(0, 1,tileRes, gl, usingIsolates);
+    pnl[2] = new perlinNoise(0, -1,tileRes, gl, usingIsolates);
+    pnl[3] = new perlinNoise(1, 0,tileRes, gl, usingIsolates);
+    pnl[4] = new perlinNoise(-1, 0,tileRes, gl, usingIsolates);
+    pnl[5] = new perlinNoise(1, 1,tileRes, gl, usingIsolates);
+    pnl[6] = new perlinNoise(1, -1,tileRes, gl, usingIsolates);
+    pnl[7] = new perlinNoise(-1, 1,tileRes, gl, usingIsolates);
+    pnl[8] = new perlinNoise(-1, -1,tileRes, gl, usingIsolates);
+    */
+
+    //isoCon = new isolateController(pnl);
+  }
+
+  renderPerlinNoiseList(){
+    for(int i = 0; i < pnl.length; i++){
+      pnl[i].render(ic.model, ic.projection, ic.view, ic.cameraPosition);
+    }
+  }
+  var change = 0.001;
+
+  updatePerlinNoiseList(){
+    if(change >= 256.0){
+      change -= 256.0;
+    }
+    change += 0.001;
+    for(int i = 0; i < pnl.length; i++){
+      pnl[i].update(change);
+    }
+    //isoCon.update(change);
+  }
+
+  //End Perlin Noise
+
   createShallowWaterList(){
     swl = new List<shallowWater>(dsl.length);
+    bool usingIsolates = true;
     for(int i = 0; i < swl.length; i++) {
-      swl[i] = new shallowWater(tileRes, gl, dsl[i].x, dsl[i].y, ctl[i].layout);
+      swl[i] = new shallowWater(tileRes, gl, dsl[i].x, dsl[i].y, usingIsolates, swl,);// ctl[i].layout);
     }
   }
 
@@ -134,6 +194,7 @@ class core {
       //ds.render(ic.model, ic.projection, ic.view, ic.normal);
       renderDiamondSquareList();
       //pn.render(ic.model, ic.projection, ic.view, ic.cameraPosition);
+      //renderPerlinNoiseList();
       //sw.render(ic.model, ic.projection, ic.view, ic.cameraPosition);
       renderShallowWaterList();
     }
@@ -146,6 +207,7 @@ class core {
       //pn.update();
       //sw.update();
       updateShallowWaterList();
+      //updatePerlinNoiseList();
     }
 
   }

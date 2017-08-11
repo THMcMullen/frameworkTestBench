@@ -5,39 +5,44 @@ import 'dart:collection';
 import 'dart:math';
 import 'dart:typed_data';
 import 'dart:web_gl';
+import 'dart:io';
 
 class shallowWaterUpdate {
+  List _elements;
 
-  RenderingContext gl;
-  Buffer positions;
-  Buffer normals;
+  bool _xp1 = true;
+  bool _xm1 = true;
+  bool _yp1 = true;
+  bool _ym1 = true;
 
-  shallowWaterUpdate(RenderingContext gl){
-    this.gl = gl;
-    this.positions = gl.createBuffer();
-    this.normals = gl.createBuffer();
+  shallowWaterUpdate() {}
+
+  setXp1(bool xp1){
+    _xp1 = xp1;
   }
 
+  setXm1(bool xm1){
+    _xm1 = xm1;
+  }
 
   waterSetup(List g, List b, List h, List h1, List u, List u1, List v, List v1,
-      int tileRes, List<List<int>> baseLayout) {
-    int X = tileRes;
-    int Y = tileRes;
+      int tileRes, List<List<int>> baseLayout, int y) {
+    int X = tileRes+2;
+    int Y = tileRes+2;
 
     // Boundaries
     for (int iy = 0; iy < Y; iy++) {
       for (int ix = 0; ix < X; ix++) {
         if (ix == 0 || iy == 0 || ix == X - 1 || iy == Y - 1) {
-          b[iy * tileRes + ix] = true;
+          //b[iy * Y + ix] = true;
         } else {
-          b[iy * tileRes + ix] = false;
+          b[iy * Y + ix] = false;
         }
       }
     }
-    //Not needed for testing
 
-    for (int iy = 0; iy < tileRes; iy++) {
-      for (int ix = 0; ix < tileRes; ix++) {
+    for (int iy = 0; iy < Y; iy++) {
+      for (int ix = 0; ix < X; ix++) {
         if (baseLayout[iy][ix] == 0) {
           b[ix * X + iy] = true;
         }
@@ -47,7 +52,7 @@ class shallowWaterUpdate {
     // Ground
     for (int iy = 0; iy < Y; iy++) {
       for (int ix = 0; ix < X; ix++) {
-        g[iy * X + ix] = 0.0;
+        g[iy * X + ix] = 0.1;
         //g[iy*X + ix] = iy * 0.2;
       }
     }
@@ -55,7 +60,7 @@ class shallowWaterUpdate {
     // Height
     for (int iy = 0; iy < Y; iy++) {
       for (int ix = 0; ix < X; ix++) {
-        h[iy * X + ix] = 0.0;
+        h[iy * X + ix] = 1.2 ;
         h1[iy * X + ix] = h[iy * X + ix];
       }
     }
@@ -76,59 +81,44 @@ class shallowWaterUpdate {
       }
     }
 
+    Random rng = new Random();
+
     for (int iy = 0; iy < Y; iy++) {
       for (int ix = 0; ix < X; ix++) {
-        double r = sqrt(
-            (ix - X / 2) * (ix - X / 2) + (iy - Y / 2) * (iy - Y / 2));
+        //h[iy*X + ix] += rng.nextDouble();
+        double r =
+            sqrt((ix - X / 2) * (ix - X / 2) + (iy - Y / 2) * (iy - Y / 2));
 
         if (r > Y / 2) {
           r = (r / (Y / 2)) * 4;
           double PI = 3.14159;
-          h[iy * X + ix] +=
-              Y * (1 / sqrt(2 * PI)) * exp(-(r * r) / 2) + (1 / r);
+          h[iy * X + ix] += Y * (1 / sqrt(2 * PI)) * exp(-(r * r) / 2) + (1 / r);
 
           //h[iy*X + ix] += ((Y/4) - r) * ((Y/4) - r);
+        }
+        if (ix == 1 || iy == 1 || ix == X - 2 || iy == Y - 2) {
+          //h[iy*X + ix] = 5.3;
+        }
+        if(ix == 1){
+          //h[iy*X + ix] = 5.0;
         }
       }
     }
   }
 
   List updateWater(List g, List b, List h, List h1, List u, List u1, List v,
-      List v1, int tileRes, List _elements, List<List<int>> grid,
-      double dt, int x, int y) {
+      List v1, int tileRes, List<List<int>> grid, double dt, int x, int y) {
     List _positions = new List();
     List _normals = new List();
 
-    int X = tileRes;
-    int Y = tileRes;
+    int X = tileRes+2;
+    int Y = tileRes+2;
 
-    upwind(
-        0,
-        tileRes,
-        b,
-        h,
-        u,
-        v,
-        dt);
-    upwind(
-        1,
-        tileRes,
-        b,
-        h,
-        u,
-        v,
-        dt);
-    upwind(
-        2,
-        tileRes,
-        b,
-        h,
-        u,
-        v,
-        dt);
+    upwind(0, tileRes, b, h, u, v, dt);
+    upwind(1, tileRes, b, h, u, v, dt);
+    upwind(2, tileRes, b, h, u, v, dt);
 
     // Update h
-    //#pragma omp parallel for
     for (int iy = 0; iy < Y; iy++) {
       for (int ix = 0; ix < X; ix++) {
         // Temporary variables
@@ -177,7 +167,6 @@ class shallowWaterUpdate {
     }
 
     // Update U
-    //#pragma omp parallel for
     for (int iy = 0; iy < Y; iy++) {
       for (int ix = 0; ix < X; ix++) {
         // Don't update boundaries
@@ -198,7 +187,6 @@ class shallowWaterUpdate {
     }
 
     //Update V
-    //#pragma omp parallel for
     for (int iy = 0; iy < Y; iy++) {
       for (int ix = 0; ix < X; ix++) {
         // Don't update boundaries
@@ -206,13 +194,11 @@ class shallowWaterUpdate {
           if (b[(iy - 1) * X + ix] == true) {
             v[iy * X + ix] = 0.0;
           } else {
-            v[
-            iy * X + ix] =
-                v[iy * X + ix] +
-                    (0.98 *
-                        ((g[(iy - 1) * X + ix] + h[(iy - 1) * X + ix]) -
-                            (g[iy * X + ix] + h[iy * X + ix])) *
-                        dt);
+            v[iy * X + ix] = v[iy * X + ix] +
+                (0.98 *
+                    ((g[(iy - 1) * X + ix] + h[(iy - 1) * X + ix]) -
+                        (g[iy * X + ix] + h[iy * X + ix])) *
+                    dt);
           }
         } else {
           v[iy * X + ix] = 0.0;
@@ -220,45 +206,36 @@ class shallowWaterUpdate {
       }
     }
 
+    List _posToSend = new List();
 
-    for (int i = 0; i < X; i++) {
-      for (int j = 0; j < Y; j++) {
-        _positions.add(((i + (x * 129))-x)/4);
-        _positions.add(h[i * X + j] * 10.0);
-        _positions.add(((j + (y * 129))-y)/4);
+    for (int i = 0; i < grid.length-1; i++) {
+      for (int j = 0; j < grid[i.toInt()].length-1; j++) {
+        _positions.add(((i -1 + (x * 65)) - x) / 4);
+        _positions.add(h[(i) * X + (j)]);
+        _positions.add(((j -1 + (y * 65)) - y) / 4);
+
+        //_posToSend.add(h[(i-1) * X + (j-1)] * 10.0);
       }
     }
 
     _normals = createNormals(_elements, _positions);
 
-    gl.bindBuffer(RenderingContext.ARRAY_BUFFER, positions);
-    gl.bufferData(
-        RenderingContext.ARRAY_BUFFER, new Float32List.fromList(_positions),
-        RenderingContext.DYNAMIC_DRAW);
-
-    gl.bindBuffer(RenderingContext.ARRAY_BUFFER, normals);
-    gl.bufferData(
-        RenderingContext.ARRAY_BUFFER, new Float32List.fromList(_normals),
-        RenderingContext.DYNAMIC_DRAW);
-
-    return [positions, normals];
+    return [_positions, _normals];
   }
 
-  List waterCreateBuffers(List<List<int>> grid, RenderingContext gl) {
+  List waterCreateBuffers(List<List<int>> grid, int tileRes, int x, int y) {
     List _positions = new List();
-    List _elements = new List<int>();
     List _normals = new List();
+    _elements = new List();
 
     //Create the vertices only if
-    for (double i = 0.0; i < grid.length - 2; i++) {
-      for (double j = 0.0; j < grid[i.toInt()].length - 2; j++) {
+    for (double i = 0.0; i < grid.length-1; i++) {
+      for (double j = 0.0; j < grid[i.toInt()].length-1; j++) {
         _positions.add(i);
         _positions.add(10.0);
         _positions.add(j);
       }
     }
-
-
 
     int current = null;
     int cm1 = null;
@@ -266,8 +243,8 @@ class shallowWaterUpdate {
     int currentp1 = null;
 
     //Produce the indices only if they can be used to produce a completed fragment
-    for (int i = 1; i < grid.length - 1; i++) {
-      for (int j = 1; j < grid[i].length - 1; j++) {
+    for (int i = 0; i < grid.length-1; i++) {
+      for (int j = 0; j < grid[i].length-1; j++) {
         if (grid[i][j] != 0) {
           if (i + 1 <= grid.length - 1) {
             if (grid[i + 1][j] != 0) {
@@ -286,8 +263,8 @@ class shallowWaterUpdate {
                   currentp1 = k ~/ 3;
                 } else if (_positions[k] == j && _positions[k + 2] == i + 1) {
                   cm1 = k ~/ 3;
-                } else
-                if (_positions[k] == j + 1 && _positions[k + 2] == i + 1) {
+                } else if (_positions[k] == j + 1 &&
+                    _positions[k + 2] == i + 1) {
                   cp1 = k ~/ 3;
                 }
               }
@@ -318,8 +295,8 @@ class shallowWaterUpdate {
                   currentp1 = k ~/ 3;
                 } else if (_positions[k] == j && _positions[k + 2] == i - 1) {
                   cm1 = k ~/ 3;
-                } else
-                if (_positions[k] == j + 1 && _positions[k + 2] == i - 1) {
+                } else if (_positions[k] == j + 1 &&
+                    _positions[k + 2] == i - 1) {
                   cp1 = k ~/ 3;
                 }
               }
@@ -342,39 +319,24 @@ class shallowWaterUpdate {
       }
     }
 
+    _positions = new List();
+
+    for (double i = 0.0; i < grid.length-1; i++) {
+      for (double j = 0.0; j < grid[i.toInt()].length-1; j++) {
+        _positions.add(((i - 1.0 + (x * 65)) - x) / 4);
+        _positions.add(1.0);
+        _positions.add(((j - 1.0 + (y * 65)) - y) / 4);
+      }
+    }
     _normals = createNormals(_elements, _positions);
-
-    Buffer positions = gl.createBuffer();
-    Buffer normals = gl.createBuffer();
-    Buffer elements = gl.createBuffer();
-    List returnList = new List(4);
-
-    gl.bindBuffer(RenderingContext.ARRAY_BUFFER, positions);
-    gl.bufferData(
-        RenderingContext.ARRAY_BUFFER, new Float32List.fromList(_positions),
-        RenderingContext.DYNAMIC_DRAW);
-    returnList[0] = positions;
-
-    gl.bindBuffer(RenderingContext.ARRAY_BUFFER, normals);
-    gl.bufferData(
-        RenderingContext.ARRAY_BUFFER, new Float32List.fromList(_normals),
-        RenderingContext.DYNAMIC_DRAW);
-    returnList[1] = normals;
-
-    gl.bindBuffer(RenderingContext.ELEMENT_ARRAY_BUFFER, elements);
-    gl.bufferData(RenderingContext.ELEMENT_ARRAY_BUFFER,
-        new Uint16List.fromList(_elements), RenderingContext.STATIC_DRAW);
-    returnList[2] = elements;
-    returnList[3] = _elements;
-
-    return returnList;
+    return [_positions, _normals, _elements];
   }
 
   upwind(type, int tileRes, List b, List h, List u, List v, double dt) {
-    int X = tileRes;
-    int Y = tileRes;
+    int X = tileRes+2;
+    int Y = tileRes+2;
 
-    var t = new List<double>(X * Y);
+    var t = new List<double>((X) * (Y));
 
     int x1, x2, y1, y2;
     double u_xy, v_xy;
@@ -389,8 +351,8 @@ class shallowWaterUpdate {
         // Select a certain array
         switch (type) {
           case 0:
-          // h
-          // Don't update a boundary
+            // h
+            // Don't update a boundary
             if (b[iy * X + ix] == true) {
               t[iy * X + ix] = h[iy * X + ix];
               break;
@@ -411,13 +373,13 @@ class shallowWaterUpdate {
             // Advected value
             t[iy * X + ix] = h[iy * X + ix] -
                 ((u_xy * (h[iy * X + x1] - h[iy * X + x2])) +
-                    (v_xy * (h[y1 * X + ix] - h[y2 * X + ix]))) *
+                        (v_xy * (h[y1 * X + ix] - h[y2 * X + ix]))) *
                     dt;
 
             break;
           case 1:
-          // u
-          // Don't update a boundary
+            // u
+            // Don't update a boundary
             if (b[iy * X + ix] == true) {
               t[iy * X + ix] = u[iy * X + ix];
               break;
@@ -426,9 +388,9 @@ class shallowWaterUpdate {
             // Calculate velocity
             u_xy = u[iy * X + ix];
             v_xy = (v[iy * X + xm1] +
-                v[iy * X + ix] +
-                v[yp1 * X + xm1] +
-                v[yp1 * X + ix]) /
+                    v[iy * X + ix] +
+                    v[yp1 * X + xm1] +
+                    v[yp1 * X + ix]) /
                 4.0;
 
             // Horizontal coordinates
@@ -442,22 +404,31 @@ class shallowWaterUpdate {
             // Advected value
             t[iy * X + ix] = u[iy * X + ix] -
                 ((u_xy * (u[iy * X + x1] - u[iy * X + x2])) +
-                    (v_xy * (u[y1 * X + ix] - u[y2 * X + ix]))) *
+                        (v_xy * (u[y1 * X + ix] - u[y2 * X + ix]))) *
                     dt;
+
             break;
           case 2:
-          // v
-          // Don't update a boundary
+            // v
+            // Don't update a boundary
             if (b[iy * X + ix] == true) {
               t[iy * X + ix] = v[iy * X + ix];
               break;
             }
 
             // Calculate velocity
+           /* print(u[ym1 * X + ix]);
+            print(u);
+            print(ym1);
+            print(X);
+            print(ix);
+
+            exit(0);*/
+
             u_xy = (u[ym1 * X + ix] +
-                u[ym1 * X + xp1] +
-                u[iy * X + ix] +
-                u[iy * X + xp1]) /
+                    u[ym1 * X + xp1] +
+                    u[iy * X + ix] +
+                    u[iy * X + xp1]) /
                 4.0;
             v_xy = v[iy * X + ix];
 
@@ -472,7 +443,7 @@ class shallowWaterUpdate {
             // Advected value
             t[iy * X + ix] = v[iy * X + ix] -
                 ((u_xy * (v[iy * X + x1] - v[iy * X + x2])) +
-                    (v_xy * (v[y1 * X + ix] - v[y2 * X + ix]))) *
+                        (v_xy * (v[y1 * X + ix] - v[y2 * X + ix]))) *
                     dt;
             break;
         }
@@ -481,21 +452,87 @@ class shallowWaterUpdate {
 
     switch (type) {
       case 0:
-        copy(h, t);
+        copy(h, t, tileRes+2);
         break;
       case 1:
-        copy(u, t);
+        copy(u, t, tileRes+2);
         break;
       case 2:
-        copy(v, t);
+        copy(v, t, tileRes+2);
         break;
     }
   }
 
-  copy(List original, List update) {
-    for (int i = 0; i < original.length; i++) {
-      original[i] = update[i];
+  copy(List original, List update, int size) {
+    for(int i = 0; i < size; i++){
+      for(int j = 0; j < size; j++){
+        //If the bottom
+        if(i == 0){
+          if(_xp1){
+
+          }else if(j == 0){
+            original[i * size + j] = update[((i+1) * size) + (j+1)];
+          }else if(j == size -1){
+            original[i * size + j] = update[(i+1) * size + (j-1)];
+          }else {
+            original[i * size + j] = update[(i + 1) * size + j];
+          }
+          //If top
+        }else if( i == size -1){
+          if(_xm1){
+
+          }else if(j == 0){
+            original[i * size + j] = update[(i-1) * size + (j+1)];
+          } else if(j == size -1){
+            original[i * size + j] = update[(i-1) * size + (j-1)];
+          }else {
+            original[i * size + j] = update[(i - 1) * size + j];
+          }
+          //If left
+        }else if( j == 0){
+          if(_yp1){
+
+          }else{
+            original[i * size + j] = update[i * size + (j+1)];
+          }
+          //If right
+        }else if( j == size -1){
+          if(_ym1){
+
+          }else {
+            original[i * size + j] = update[i * size + (j - 1)];
+          }
+        }else{
+          original[i * size + j] = update[i * size + j];
+        }
+      }
     }
+    /*for (int i = 0; i < original.length; i++) {
+      if(update[i] != null) {
+        original[i] = update[i];
+      }
+    }*/
   }
+
+  /*
+
+  setAbove(List above){
+    _above = above;
+  }
+
+  setBelow(List below){
+    _below = below;
+  }
+
+  setLeft(List left){
+    _left = left;
+  }
+
+  setRight(List right){
+    _right = right;
+  }
+
+*/
+
 
 }

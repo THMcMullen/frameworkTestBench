@@ -1,5 +1,8 @@
 library diamondSqure;
 
+import 'dart:async';
+import 'dart:html';
+import 'dart:isolate';
 import 'dart:math';
 import 'dart:typed_data';
 import 'dart:web_gl';
@@ -9,6 +12,11 @@ import '../utils.dart' as utils;
 import 'package:vector_math/vector_math.dart';
 
 class diamondSqure{
+
+  ReceivePort receivePort;
+  SendPort sendPort;
+  bool useIsolate;
+  bool readyToRender = false;
 
   List heightMap;
   double height;
@@ -47,13 +55,22 @@ class diamondSqure{
 
   List<diamondSqure> dsl;
 
-  diamondSqure(int x, int y, int tileResolution, RenderingContext gl, List<diamondSqure> dsl){
+  List _above = null;
+  List _below = null;
+  List _left = null;
+  List _right = null;
+
+  var t0;
+  var t1;
+
+  diamondSqure(int x, int y, int tileResolution, RenderingContext gl, List<diamondSqure> dsl, bool useIsolate){
 
     this.x = x;
     this.y = y;
     this.tileResolution = tileResolution;
     this.gl = gl;
     this.dsl = dsl;
+    this.useIsolate = useIsolate;
 
     positions = this.gl.createBuffer();
     elements = this.gl.createBuffer();
@@ -61,11 +78,6 @@ class diamondSqure{
     colors = this.gl.createBuffer();
 
     //For taking images
-
-    List _above = null;
-    List _below = null;
-    List _left = null;
-    List _right = null;
 
     for(int i = 0; i < dsl.length; i++){
       if(dsl[i] != null){
@@ -92,8 +104,29 @@ class diamondSqure{
       }
     }
 
-    heightMap = createHeightMap(this.tileResolution, _above, _below, _left, _right);
+    heightMapChanges = new List(tileResolution);
+    for(int i = 0; i < tileResolution; i++){
+      heightMapChanges[i] = new List(tileResolution);
+      for(int j = 0; j < tileResolution; j++){
+        heightMapChanges[i][j] = 0;
+      }
+    }
+    heightMapChangesOld = heightMapChanges;
 
+    if(useIsolate){
+      receivePort = new ReceivePort();
+      createIsolateHeightMap();
+    }else {
+      t0 = window.performance.now();
+      heightMap = createHeightMap(this.tileResolution, _above, _below, _left, _right);
+      t1 = window.performance.now();
+      var time = t1 - t0;
+      print("Call to create diamondSquare took  $time  milliseconds.");
+
+      sideLength = 1;//tileResolution - 1;
+      height = 10.0;
+      convertHeightMap();
+    }
 /*
     heightMap = new List(tileResolution);
     for(int i = 0; i < tileResolution; i++){
@@ -104,21 +137,59 @@ class diamondSqure{
     }
     //heightMap[0][0] = 10.0;
 */
-    heightMapChanges = new List(tileResolution);
-    for(int i = 0; i < tileResolution; i++){
-      heightMapChanges[i] = new List(tileResolution);
-      for(int j = 0; j < tileResolution; j++){
-        heightMapChanges[i][j] = 0;
-      }
-    }
-    heightMapChangesOld = heightMapChanges;
 
-    sideLength = 1;//tileResolution - 1;
-    height = 10.0;
 
-    convertHeightMap();
+
     createShaders();
     setupProgram();
+
+  }
+
+  temp() {
+    if (sendPort == null) {
+      new Future.delayed(const Duration(milliseconds: 15), temp);
+    } else {
+      sendPort.send([this.tileResolution, _above, _below, _left, _right]);
+    }
+  }
+
+  createIsolateHeightMap(){
+    print("using isolate");
+    
+    receivePort.listen((msg){
+      if (sendPort == null) {
+        sendPort = msg;
+      } else {
+        t1 = window.performance.now();
+        var time = t1 - t0;
+        print("Call to create diamondSquare took  $time  milliseconds.");
+        createWebGLBuffers(msg);
+        //print('Received from isolate: $msg');
+      }
+    });
+    t0 = window.performance.now();
+    Isolate.spawnUri(Uri.parse("autoConfigFramework/diamondSquare/diamondSqureAlgorithmIsolate.dart"), [], receivePort.sendPort).whenComplete(temp);
+
+  }
+
+  createWebGLBuffers(isolateData){
+
+    numberOfElements = isolateData[2].length;
+
+    gl.bindBuffer(RenderingContext.ARRAY_BUFFER, this.positions);
+    gl.bufferData(RenderingContext.ARRAY_BUFFER, new Float32List.fromList(isolateData[0]), RenderingContext.DYNAMIC_DRAW);
+
+    gl.bindBuffer(RenderingContext.ARRAY_BUFFER, this.normals);
+    gl.bufferData(RenderingContext.ARRAY_BUFFER, new Float32List.fromList(isolateData[3]), RenderingContext.DYNAMIC_DRAW);
+
+    gl.bindBuffer(RenderingContext.ELEMENT_ARRAY_BUFFER, this.elements);
+    gl.bufferData(RenderingContext.ELEMENT_ARRAY_BUFFER, new Uint16List.fromList(isolateData[2]), RenderingContext.STATIC_DRAW);
+
+    gl.bindBuffer(RenderingContext.ARRAY_BUFFER, this.colors);
+    gl.bufferData(RenderingContext.ARRAY_BUFFER, new Float32List.fromList(isolateData[1]), RenderingContext.DYNAMIC_DRAW);
+
+    readyToRender = true;
+
 
   }
 
@@ -202,7 +273,6 @@ class diamondSqure{
     gl.vertexAttribPointer(colormat, 4, FLOAT, false, 0, 0);
 
     gl.bindBuffer(RenderingContext.ELEMENT_ARRAY_BUFFER, this.elements);
-
     gl.drawElements(RenderingContext.LINES, numberOfElements, RenderingContext.UNSIGNED_SHORT, 0);
 
   }
@@ -254,17 +324,17 @@ class diamondSqure{
             _colors.add(0.0);
             _colors.add(1.0);
             _colors.add(1.0);
-          }else if(heightMap[i.toInt()][j.toInt()] < 1.5){
+          }else {//if(heightMap[i.toInt()][j.toInt()] < 1.5){
             _colors.add(0.3 + alpha);
             _colors.add(0.8);
             _colors.add(0.3 + alpha);
             _colors.add(1.0);
-          }else{
+          }/*else{
             _colors.add(0.8);
             _colors.add(0.42);
             _colors.add(0.42);
             _colors.add(0.6 + alpha);
-          }
+          }*/
         }else {
           //image stuff
           if (heightMapChanges[i.toInt()][j.toInt()] == 3) {
@@ -352,7 +422,7 @@ class diamondSqure{
     }
 
     //heightMapChanges = heightMapChangesOld;
-
+    readyToRender = true;
   }
 
   setupProgram(){

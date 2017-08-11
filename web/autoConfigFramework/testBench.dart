@@ -4,6 +4,7 @@ import 'dart:html';
 import 'dart:web_gl';
 import 'dart:async';
 
+
 import 'core.dart';
 
 class testBench{
@@ -26,7 +27,7 @@ class testBench{
 
   logic(){
     if(autoRun) {
-      new Future.delayed(const Duration(milliseconds: 1), logic);
+      new Future.delayed(const Duration(milliseconds: 30), logic);//.timeout((const Duration(milliseconds: 30)), onTimeout: () =>_onTimeOut());
     }
     nexus.update();
   }
@@ -34,6 +35,10 @@ class testBench{
   render(time){
     window.requestAnimationFrame(render);
     nexus.draw();
+  }
+
+  void _onTimeOut(){
+    print("Timeout");
   }
 
 

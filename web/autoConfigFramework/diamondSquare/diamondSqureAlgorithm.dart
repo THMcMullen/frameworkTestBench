@@ -33,7 +33,7 @@ List createHeightMap(int tileResolution, List _above, List _below, List _left, L
     }
   }
 
-  Random rng = new Random();
+  Random rng = new Random(8);
   double height = 5.0;
 
 

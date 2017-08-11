@@ -126,8 +126,6 @@ List createNormals(List indices, List vertices){
 
   for(int i = 0; i < vertices.length; i++) {
     _normals.add(0.0);
-    _normals.add(0.0);
-    _normals.add(0.0);
   }
 
   Vector3 pointOne = new Vector3.zero();

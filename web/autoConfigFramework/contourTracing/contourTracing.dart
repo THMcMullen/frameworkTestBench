@@ -14,7 +14,7 @@ class contourTracing{
   int workingX;
   int workingY;
 
-  double level = 0.0;
+  double level = -0.5;
 
 
   contourTracing(List heightMap){
